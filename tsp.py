@@ -3,9 +3,13 @@ from copy import copy
 
 class Graph:
 
-    def __init__(self, directed = False, completed = False, randweight = None, numvertices = None):
+    def __init__(self, directed = False, completed = False, randweight = None, numvertices = None, filename = None):
         self.adjList = dict()
         self.directed = directed
+        if filename != None:
+            self.load(filename)
+            return
+
         if numvertices != None:
             for i in range(numvertices):
                 self.addVertice(i)
@@ -18,6 +22,59 @@ class Graph:
                             self.addEdge(i, j, random.randint(1, randweight))
                         else:
                             self.addEdge(i, j, 1)
+
+    def restart(self):
+        self.adjList = dict()
+
+    def save(self, filename):
+        f = open(filename, mode = 'w')
+
+        f.write(str(int(self.directed)) + "\n")
+
+        for k in self.adjList:
+            f.write(str(k))
+            for (v, w) in self.adjList[k]:
+                f.write(" " + str(v))
+                f.write(" " + str(w))
+
+            f.write("\n")
+        f.close()
+
+    def load(self, filename):
+        self.restart()
+        f = open(filename, mode = 'r')
+        dat = f.read()
+        f.close()
+        dat = dat.split('\n')
+
+        if dat[len(dat) - 1] == "":
+            dat.pop()
+
+        self.directed = bool(int(dat[0]))
+        dat.pop(0)
+        print(dat)
+
+        for line in dat:
+            l = line.split(" ")
+            v = l[0]
+            if v.isnumeric():
+                v = int(v)
+            self.addVertice(v)
+
+        for line in dat:
+            line = line.split(" ")
+            i = 1
+            v = line[0]
+            if v.isnumeric():
+                v = int(v)
+            while i < len(line):
+                v2 = line[i]
+                if v2.isnumeric():
+                    v2 = int(v2)
+                i += 1
+                w = int(line[i])
+                self.addEdge(v, v2, w)
+                i += 1
 
 
     def addVertice(self, vertice):
@@ -90,21 +147,6 @@ class Graph:
 
 # Exemplo
 
-#graph = Graph()
-#
-#graph.addVertice(0)
-#graph.addVertice(1)
-#graph.addVertice(2)
-#graph.addVertice(3)
-#
-#graph.addEdge(0, 1, 2)
-#graph.addEdge(1, 3, 3)
-#graph.addEdge(2, 3, 4)
-#graph.addEdge(2, 1, 5)
-#
-#print(graph.adjList)
-#print(graph.getWeight(1,0))
-
-graph = Graph(completed = True, numvertices = 40, randweight = 10)
+#graph = Graph(completed = True, numvertices = 4, randweight = 10)
+graph = Graph(filename = "salvo")
 print(graph.adjList)
-print(graph.minimalPath(0))

@@ -1,4 +1,4 @@
-import random
+from random import randint
 from copy import copy
 
 class Graph:
@@ -19,7 +19,7 @@ class Graph:
                 for j in range(numvertices):
                     if i != j:
                         if randweight != None:
-                            self.addEdge(i, j, random.randint(1, randweight))
+                            self.addEdge(i, j, randint(1, randweight))
                         else:
                             self.addEdge(i, j, 1)
 
@@ -145,8 +145,63 @@ class Graph:
 
         return minpath
 
-# Exemplo
+class Ant:
 
-#graph = Graph(completed = True, numvertices = 4, randweight = 10)
-graph = Graph(filename = "salvo")
-print(graph.adjList)
+    def __init__(self, startnode, G):
+        self.restart(startnode)
+        self.G = G
+
+    def restart(self, startnode):
+        self.startnode = startnode
+        self.visited = [startnode]
+        self.currentnode = startnode
+        self.pathsize = 0
+
+    def update(self, newnode):
+        self.pathsize += G.getWeight(self.currentnode, newnode)
+        self.currentnode = newnode
+        self.visited.append(newnode)
+
+class PheromoneTable:
+
+    def __init__(self, nodes):
+        self.table = dict()
+
+        for u in nodes:
+            for v in nodes:
+                if u != v and self.table.get((u,v)) == None and self.table.get((v,u)) == None:
+                    self.table[(u,v)] = 0
+
+    def adjust(edge):
+        u, v = edge
+        if self.table.get((u,v)) == None:
+            v, u = edge
+
+        return (u,v)
+
+    def get(self, edge):
+        u, v = adjust(edge)
+
+        return self.table[(u,v)]
+
+    def update(self, ants):
+        pass
+
+def ACO_AS(G, m, epochs, alfa = 1, beta = 5, p = 0.5):
+    V = G.getVertices()
+    n = len(V)
+    pheromonetable = PheromoneTable(V)
+
+    ants = []
+    for i in range(m):
+        ants.append(Ant(randlist(V)))
+
+    while (epochs > 0):
+        pass
+
+def randlist(l):
+    return l[randint(0, len(l) - 1)]
+
+def probaction(ant, dest, pheromonetable, G, alfa, beta):
+    pass
+

@@ -9,6 +9,8 @@ class Graph:
     def __init__(self, directed = False, completed = False, randweight = None, numvertices = None, filename = None):
         self.adjList = dict()
         self.directed = directed
+        self.coordinates = dict()
+        self.globaloptimum = None
         if filename != None:
             self.load(filename)
             return
@@ -43,7 +45,7 @@ class Graph:
             f.write("\n")
         f.close()
 
-    def load(self, filename):
+    def loadtsp(self, filename):
         self.restart()
         f = open(filename, mode = 'r')
         dat = f.read()
@@ -53,8 +55,11 @@ class Graph:
         if dat[len(dat) - 1] == "":
             dat.pop()
 
-        self.directed = bool(int(dat[0]))
-        dat.pop(0)
+        if dat[0][0] == "#":
+            title = dat.pop(0)
+            self.globaloptimum = title.split(" ").pop()
+
+        self.directed = False
 
         for line in dat:
             l = line.split(" ")
@@ -62,21 +67,15 @@ class Graph:
             if v.isnumeric():
                 v = int(v)
             self.addVertice(v)
+            self.coordinates[v] = (float(l[1]), float(l[2]))
 
-        for line in dat:
-            line = line.split(" ")
-            i = 1
-            v = line[0]
-            if v.isnumeric():
-                v = int(v)
-            while i < len(line):
-                v2 = line[i]
-                if v2.isnumeric():
-                    v2 = int(v2)
-                i += 1
-                w = int(line[i])
-                self.addEdge(v, v2, w)
-                i += 1
+        V = self.getVertices()
+        for v1 in V:
+            for v2 in V:
+                if v1 != v2:
+                    p = self.coordinates[v1]
+                    q = self.coordinates[v2]
+                    self.addEdge(v1, v2, math.sqrt(pow(p[0] - q[0], 2) + pow(p[1] - q[1], 2)))
 
 
     def addVertice(self, vertice):
@@ -183,13 +182,15 @@ class Ant:
 
 class PheromoneTable:
 
-    def __init__(self, nodes):
+    def __init__(self, nodes, G):
         self.table = dict()
+        bestgreedy = min(greedy(G))
 
         for u in nodes:
             for v in nodes:
                 if u != v and self.table.get((u,v)) == None and self.table.get((v,u)) == None:
-                    self.table[(u,v)] = 0.01
+                    #self.table[(u,v)] = 1 / randint(1, int(bestgreedy))
+                    self.table[(u,v)] = randint(1, int(bestgreedy))
 
     def adjust(self, edge):
         u, v = edge
@@ -218,8 +219,8 @@ class PheromoneTable:
 def ACO_AS(G, m, epochs, alfa = 1, beta = 5, p = 0.5):
     V = G.getVertices()
     n = len(V)
-    pheromonetable = PheromoneTable(V)
-    globalbest = math.inf
+    pheromonetable = PheromoneTable(V, G)
+    pathlist = []
 
     ants = []
     for i in range(m):
@@ -234,12 +235,11 @@ def ACO_AS(G, m, epochs, alfa = 1, beta = 5, p = 0.5):
         for ant in ants:
             ant.restart()
 
-        if localbest < globalbest:
-            globalbest = localbest
+        pathlist.append(localbest)
 
         epochs -= 1
 
-    return globalbest
+    return pathlist
 
 def antactivity(ants, alfa, beta, pheromonetable):
     m = len(ants)
@@ -285,11 +285,69 @@ def probaction(edge, pheromonetable, G, alfa, beta):
 
     return pow(t, alfa) * pow(n, beta)
 
-#G = Graph(numvertices = 50, completed = True, randweight = 1000)
-#G.save("graph")
-G = Graph(filename = "graph")
-path = G.minimalPath(0)
-print(path, G.pathSize(path))
+def randomsearch(G, m, epochs):
+    V = G.getVertices()
+    n = len(V)
+    pathlist = []
 
-#print(ACO_AS(G, 100, 50, alfa = 5, beta = 5, p = 0.3))
+    while epochs > 0:
+        best = math.inf
+        for i in range(m):
+            path = []
+            for j in range(n):
+                adj = list(set(V).difference(set(path)))
+                path.append(adj[randrange(len(adj))])
+
+            pathsize = G.pathSize(path)
+            if pathsize < best:
+                best = pathsize
+
+        pathlist.append(best)
+
+        epochs -= 1
+
+    return pathlist
+
+def greedy(G, n = None):
+    V = G.getVertices()
+    pathlist = []
+
+    if n == None:
+        n = G.numVertices()
+
+    for i in range(n):
+        path = [V[i]]
+        for j in range(n-1):
+            adj = list(set(V).difference(set(path)))
+            weights = []
+            v1 = path[len(path)-1]
+            for v2 in adj:
+                weights.append(G.getWeight(v1, v2))
+
+            path.append(adj[weights.index(min(weights))])
+
+        pathlist.append(G.pathSize(path))
+
+    return pathlist
+
+#G = Graph(numvertices = 30, completed = True, randweight = 200)
+#G.save("graph30")
+#G = Graph(filename = "graph30")
+#path = G.minimalPath(0)
+#print(path, G.pathSize(path))
+G = Graph()
+G.loadtsp("eil51.tsp")
+
+m = 100
+epochs = 200
+
+bestACO = ACO_AS(G, m, epochs, alfa = 1, beta = 3, p = 0.6)
+print("# global optimum")
+print(G.globaloptimum)
+print("# ACO")
+print(min(bestACO))
+print("# random search")
+print(min(randomsearch(G, m, epochs)))
+print("# greedy")
+print(min(greedy(G)))
 
